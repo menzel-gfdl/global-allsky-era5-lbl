@@ -1,0 +1,6 @@
+[submodule "dependencies/GRTCODE"]
+	path = dependencies/GRTCODE
+	url = git@github.com:menzel-gfdl/GRTCODE.git
+[submodule "dependencies/rte-rrtmgp"]
+	path = dependencies/rte-rrtmgp
+	url = git@github.com:earth-system-radiation/rte-rrtmgp.git
