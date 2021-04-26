@@ -1,0 +1,22 @@
+#!/bin/bash -ex
+
+year="2010"
+month="3"
+
+if [ ! -f "era5-inputs.tar.gz" ]; then
+  wget ftp://ftp2.gfdl.noaa.gov/perm/Raymond.Menzel/era5-inputs.tar.gz
+fi
+if [ ! -d "era5-inputs" ]; then
+  tar xvfz era5-inputs.tar.gz
+fi
+
+./global_allsky_era5_lbl dependencies/rte-rrtmgp/rrtmgp/data/rrtmgp-data-lw-g256-2018-12-04.nc \
+                         /archive/rlm/era5-prp/${year}-era5.nc \
+                         /home/rlm/green-house-gases.nc \
+                         -monthly -o ${year}-${month}-global-era5-output.nc \
+                         -H2O -O3 -CH4 $year -CO2 $year -N2O $year \
+                         -clouds -n 20 \
+                         -beta era5-inputs/beta_distribution.nc \
+                         -liquid era5-inputs/clouds/hu_stamnes.nc -r-liquid 10. \
+                         -ice era5-inputs/clouds/chou_suarez.nc \
+                         -t $month -T $month

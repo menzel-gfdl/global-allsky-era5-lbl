@@ -1,0 +1,19 @@
+#!/bin/bash -ex
+
+# Build GRTCODE
+cd dependencies/GRTCODE
+autoreconf -i
+./configure --enable-fortran CFLAGS="-g -O2 -qopenmp" FCFLAGS="-g -O2 -qopenmp" CXXFLAGS="-g -O2 -qopenmp"
+make
+cd -
+
+# Build RTE and RRTMGP
+cd dependencies/rte-rrtmgp
+export RRTMGP_ROOT="$PWD"
+make libs
+cd -
+
+# Build the global allsky ERA5 line-by-line executable
+autoreconf -i
+./configure FCFLAGS="-g -O0 -qopenmp -traceback"
+make

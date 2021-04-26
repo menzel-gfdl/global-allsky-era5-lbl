@@ -14,7 +14,6 @@ use stochastic_clouds, only: overlap_parameter, TotalWaterPDF
 use mo_fluxes, only: ty_fluxes_broadband
 use mo_gas_concentrations, only: ty_gas_concs
 use mo_gas_optics_rrtmgp, only: ty_gas_optics_rrtmgp
-use mo_heating_rates, only: compute_heating_rate
 use mo_rte_kind, only: wp
 use mo_load_coefficients, only: load_and_init
 use mo_optical_props, only: ty_optical_props_1scl, ty_optical_props_2str
@@ -85,18 +84,13 @@ real(kind=wp), dimension(:), allocatable :: omega_ice
 real(kind=wp), dimension(:), allocatable :: g_ice
 
 !Fluxes.
-real(kind=wp), dimension(:,:), allocatable :: diffuse_albedo
-real(kind=wp), dimension(:,:), allocatable :: direct_albedo
 real(kind=wp), dimension(:,:), allocatable :: emissivity
 real(kind=wp), parameter :: infrared_cutoff = 1.e4/0.7 ![cm-1].
 integer :: infrared_cutoff_index
 real(kind=wp) :: input_emissivity
 type(ty_fluxes_broadband) :: lw_fluxes
-real(kind=wp), parameter :: min_cos_zenith = tiny(min_cos_zenith)
 type(ty_fluxes_broadband) :: fluxes
 real(kind=wp), dimension(:), allocatable :: total_irradiance
-real(kind=wp), dimension(:), allocatable :: zenith
-real(kind=wp), dimension(:,:), allocatable :: lw_heating_rate
 
 !Add arguments.
 parser = create_parser()
@@ -310,11 +304,14 @@ do t = 1, atm%num_times
                             ppmv, lw_optics, source, tlev=atm%level_temperature(:,:,i,t))
     call catch(error)
 
-    if (atm%clear) then
-      !Clear-sky fluxes.
-      error = rte_lw(lw_optics, .true., source, emissivity, lw_fluxes, n_gauss_angles=1)
-      call catch(error)
-    else
+    !Calculate clear-sky fluxes.
+    error = rte_lw(lw_optics, .true., source, emissivity, lw_fluxes, n_gauss_angles=1)
+    call catch(error)
+    do j = 1, block_size
+      call write_output(output, rldcs, lw_fluxes%flux_dn, t, j, i)
+      call write_output(output, rlucs, lw_fluxes%flux_up, t, j, i)
+    enddo
+    if (.not. atm%clear) then
       !All-sky fluxes, using stochastic subcolumns.
       do j = 1, block_size
         lw_fluxes%flux_dn(j,:) = 0.
@@ -439,8 +436,6 @@ if (atm%monthly) then
 endif
 
 call destroy_atmosphere(atm)
-deallocate(diffuse_albedo)
-deallocate(direct_albedo)
 deallocate(emissivity)
 deallocate(gas_names)
 deallocate(lw_fluxes%flux_dn)
